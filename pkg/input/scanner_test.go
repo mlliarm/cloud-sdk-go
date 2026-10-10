@@ -96,9 +96,10 @@ func TestScannerFull(t *testing.T) {
 	// THIS IS THE DEVICE WHERE WE WRITE
 	var outputDevice = output.NewDevice(out)
 
-	// We wrap it like this to avoid races in reads & writes.
+	// Like a terminal, the pipe blocks reads until input is written.
+	r, w := io.Pipe()
 	var inputDevice = &Stdin{
-		in:  &ConcBuf{buf: new(bytes.Buffer)},
+		in:  pipe{r, w},
 		out: out,
 	}
 
@@ -166,6 +167,11 @@ func (in *Stdin) Write(p []byte) (n int, err error) {
 
 func (in *Stdin) Read(p []byte) (n int, err error) {
 	return in.in.Read(p)
+}
+
+type pipe struct {
+	*io.PipeReader
+	*io.PipeWriter
 }
 
 type ConcBuf struct {
